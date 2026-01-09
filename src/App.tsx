@@ -11,6 +11,7 @@ import { EmotionalPage } from './pages/EmotionalPage';
 import { VoicePage } from './pages/VoicePage';
 import { CoachPage } from './pages/CoachPage';
 import { Settings } from './pages/Settings';
+import { RoomOrganizerPage } from './pages/RoomOrganizerPage';
 import { initializeDatabase } from './db/database';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
             <Route path="/voice" element={<VoicePage />} />
             <Route path="/coach" element={<CoachPage />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/organize" element={<RoomOrganizerPage />} />
           </Routes>
         </main>
         <QuickCapture />

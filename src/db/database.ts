@@ -41,6 +41,8 @@ export interface TimeBlock {
   date: string; // YYYY-MM-DD format
   color: string;
   completed: boolean;
+  taskId?: number; // Link to task
+  category?: 'work' | 'meeting' | 'self-care' | 'exercise' | 'meal' | 'personal' | 'break';
 }
 
 export interface PomodoroSession {
@@ -214,6 +216,21 @@ class ExecFunctionDB extends Dexie {
       settings: '++id',
       tasks: '++id, status, createdAt, deadline',
       timeBlocks: '++id, date, startTime',
+      pomodoroSessions: '++id, completedAt, taskId',
+      moodLogs: '++id, timestamp, mood, energy',
+      thoughtDumps: '++id, timestamp',
+      impulseLogs: '++id, timestamp, outcome',
+      copingStrategies: '++id, category',
+      journalEntries: '++id, timestamp',
+      coachSessions: '++id, createdAt, updatedAt',
+      reminders: '++id, taskId, triggerType, createdAt',
+    });
+
+    // Version 5: Added taskId index to timeBlocks for task-timeline linking
+    this.version(5).stores({
+      settings: '++id',
+      tasks: '++id, status, createdAt, deadline',
+      timeBlocks: '++id, date, startTime, taskId',
       pomodoroSessions: '++id, completedAt, taskId',
       moodLogs: '++id, timestamp, mood, energy',
       thoughtDumps: '++id, timestamp',

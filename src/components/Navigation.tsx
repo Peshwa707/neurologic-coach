@@ -13,6 +13,7 @@ import {
   Key,
   X,
   Check,
+  Sparkles,
 } from 'lucide-react';
 import { useSettings, updateSettings } from '../hooks/useDatabase';
 
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/coach', icon: MessageCircle, label: 'Coach' },
   { to: '/time', icon: Clock, label: 'Time' },
   { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
+  { to: '/organize', icon: Sparkles, label: 'Organize' },
   { to: '/awareness', icon: Brain, label: 'Awareness' },
   { to: '/inhibition', icon: Shield, label: 'Inhibition' },
   { to: '/emotional', icon: Heart, label: 'Emotional' },
@@ -164,7 +166,7 @@ export function Navigation() {
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-2 z-50">
         <div className="flex justify-around items-center">
-          {navItems.slice(0, 4).map((item) => (
+          {navItems.slice(0, 3).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -178,6 +180,17 @@ export function Navigation() {
               <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           ))}
+          <NavLink
+            to="/organize"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all ${
+                isActive ? 'text-purple-400' : 'text-slate-500'
+              }`
+            }
+          >
+            <Sparkles className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Organize</span>
+          </NavLink>
           <NavLink
             to="/voice"
             className={({ isActive }) =>

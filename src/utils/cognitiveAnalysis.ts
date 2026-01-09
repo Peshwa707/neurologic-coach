@@ -7,7 +7,17 @@ const ANTHROPIC_VERSION = '2023-06-01';
 
 interface ClaudeMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: string | ClaudeContentBlock[];
+}
+
+interface ClaudeContentBlock {
+  type: 'text' | 'image';
+  text?: string;
+  source?: {
+    type: 'base64';
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    data: string;
+  };
 }
 
 interface ClaudeResponse {
@@ -1072,4 +1082,249 @@ function localPrioritization(
       tags,
     };
   }).sort((a, b) => b.score - a.score);
+}
+
+// Room organization AI analysis using Claude Vision
+export interface RoomOrganizationResult {
+  overallAssessment: string;
+  clutterLevel: 'minimal' | 'moderate' | 'significant' | 'overwhelming';
+  problemAreas: {
+    area: string;
+    issue: string;
+    priority: 'high' | 'medium' | 'low';
+  }[];
+  actionableSteps: {
+    step: string;
+    timeEstimate: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+  }[];
+  quickWins: string[];
+  organizationTips: string[];
+}
+
+const ROOM_ORGANIZATION_PROMPT = `You are a professional home organizer helping someone with ADHD declutter and organize their space. Analyze the image of their room/space and provide actionable, non-overwhelming guidance.
+
+PRINCIPLES:
+1. Be encouraging, not judgmental - clutter happens to everyone
+2. Focus on SMALL, ACHIEVABLE steps (2-10 minutes each)
+3. Identify "quick wins" that provide immediate visual improvement
+4. Consider ADHD-friendly organization strategies (visible storage, simple systems)
+5. Prioritize based on impact and ease
+
+Respond with JSON in this exact format:
+{
+  "overallAssessment": "Brief encouraging assessment of the space",
+  "clutterLevel": "minimal|moderate|significant|overwhelming",
+  "problemAreas": [
+    {"area": "specific area in room", "issue": "what needs attention", "priority": "high|medium|low"}
+  ],
+  "actionableSteps": [
+    {"step": "specific action to take", "timeEstimate": "5 min", "difficulty": "easy|medium|hard"}
+  ],
+  "quickWins": ["immediate small action that makes visible difference"],
+  "organizationTips": ["ADHD-friendly tip for maintaining organization"]
+}
+
+Focus on:
+- Items on the floor that could be put away
+- Surfaces that need clearing
+- Items without a "home" that need designated spots
+- Trash or recyclables to remove
+- Grouping similar items together`;
+
+export async function analyzeRoomOrganization(
+  imageBase64: string,
+  imageType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+  additionalContext: string,
+  apiKey: string
+): Promise<RoomOrganizationResult> {
+  if (!apiKey) {
+    throw new Error('API_KEY_REQUIRED');
+  }
+
+  const messages: ClaudeMessage[] = [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: imageType,
+            data: imageBase64,
+          },
+        },
+        {
+          type: 'text',
+          text: additionalContext
+            ? `Please analyze this room/space for organization opportunities. Additional context from user: "${additionalContext}"`
+            : 'Please analyze this room/space for organization opportunities and provide actionable decluttering steps.',
+        },
+      ],
+    },
+  ];
+
+  const body = {
+    model: CLAUDE_MODEL,
+    max_tokens: 2048,
+    system: ROOM_ORGANIZATION_PROMPT,
+    messages: messages,
+  };
+
+  const response = await fetch(CLAUDE_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': apiKey,
+      'anthropic-version': ANTHROPIC_VERSION,
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Claude Vision API error:', response.status, JSON.stringify(errorData, null, 2));
+    throw new Error(errorData.error?.message || `API error: ${response.status}`);
+  }
+
+  const data: ClaudeResponse = await response.json();
+  const textContent = data.content.find(c => c.type === 'text');
+
+  if (!textContent?.text) {
+    throw new Error('Empty response from Claude');
+  }
+
+  // Parse JSON response
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Invalid response format');
+  }
+
+  return JSON.parse(jsonMatch[0]);
+}
+
+// AI-powered schedule generation
+export interface ScheduleSuggestion {
+  taskId: number;
+  taskTitle: string;
+  suggestedStart: string; // HH:mm
+  suggestedEnd: string;
+  reasoning: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+interface TaskForScheduling {
+  id?: number;
+  title: string;
+  description?: string;
+  estimatedMinutes?: number;
+  resistance: number;
+  deadline?: Date;
+}
+
+interface ExistingBlock {
+  startTime: string;
+  endTime: string;
+}
+
+interface EnergyPatternForScheduling {
+  hourlyAverages: { hour: number; avgEnergy: number }[];
+  peakHours: number[];
+  lowHours: number[];
+}
+
+const SCHEDULING_PROMPT = `You are a scheduling assistant helping someone with ADHD plan their day. Create an optimal schedule considering:
+
+1. ENERGY MATCHING: High-resistance tasks (7+) should go in peak energy hours
+2. TIME GAPS: Find available slots around existing blocks
+3. DEADLINES: Urgent tasks get priority
+4. BUFFER TIME: Leave 15 min gaps between blocks
+5. REALISTIC DURATION: Don't schedule past 8 PM
+6. QUICK WINS: Start with easy tasks to build momentum if energy is low
+
+Respond with JSON array only:
+[{
+  "taskIndex": 0,
+  "suggestedStart": "09:00",
+  "suggestedEnd": "10:00",
+  "reasoning": "Peak energy hour for high-resistance task",
+  "confidence": "high"
+}]
+
+Confidence levels:
+- high: Perfect match (peak energy + available slot + no conflicts)
+- medium: Good fit but not optimal
+- low: Compromise due to constraints`;
+
+export async function generateScheduleSuggestions(
+  tasks: TaskForScheduling[],
+  existingBlocks: ExistingBlock[],
+  energyPatterns: EnergyPatternForScheduling | null,
+  date: string,
+  apiKey: string
+): Promise<ScheduleSuggestion[]> {
+  if (!apiKey || tasks.length === 0) {
+    return [];
+  }
+
+  try {
+    const taskSummaries = tasks.map((t, i) => ({
+      index: i,
+      title: t.title,
+      estimatedMinutes: t.estimatedMinutes || 30,
+      resistance: t.resistance,
+      deadline: t.deadline ? new Date(t.deadline).toISOString().split('T')[0] : null,
+    }));
+
+    const context = {
+      date,
+      tasks: taskSummaries,
+      existingBlocks: existingBlocks.map(b => ({
+        start: b.startTime,
+        end: b.endTime,
+      })),
+      energyPatterns: energyPatterns ? {
+        peakHours: energyPatterns.peakHours,
+        lowHours: energyPatterns.lowHours,
+        hourlyEnergy: energyPatterns.hourlyAverages
+          .filter(h => h.hour >= 6 && h.hour <= 20)
+          .map(h => ({ hour: h.hour, energy: h.avgEnergy.toFixed(1) })),
+      } : null,
+    };
+
+    const content = await callClaudeAPI(
+      [{
+        role: 'user',
+        content: `Schedule these tasks for ${date}:
+
+${JSON.stringify(context, null, 2)}
+
+Create time blocks for up to 5 most important tasks.`
+      }],
+      SCHEDULING_PROMPT,
+      apiKey,
+      { maxTokens: 1500, temperature: 0.5 }
+    );
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error('Invalid response format');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return parsed.map((s: { taskIndex: number; suggestedStart: string; suggestedEnd: string; reasoning: string; confidence: string }) => ({
+      taskId: tasks[s.taskIndex]?.id || 0,
+      taskTitle: tasks[s.taskIndex]?.title || '',
+      suggestedStart: s.suggestedStart,
+      suggestedEnd: s.suggestedEnd,
+      reasoning: s.reasoning,
+      confidence: s.confidence as 'high' | 'medium' | 'low',
+    })).filter((s: ScheduleSuggestion) => s.taskId > 0);
+
+  } catch (error) {
+    console.error('AI scheduling failed:', error);
+    return [];
+  }
 }
