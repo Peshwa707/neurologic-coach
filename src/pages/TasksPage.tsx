@@ -44,6 +44,7 @@ export function TasksPage() {
   const [isGeneratingSteps, setIsGeneratingSteps] = useState(false);
   const [aiGeneratedSteps, setAiGeneratedSteps] = useState<GeneratedStep[]>([]);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [breakingDownTaskId, setBreakingDownTaskId] = useState<number | null>(null);
 
   const handleAddTask = async () => {
     if (!newTask.title.trim()) return;
@@ -117,7 +118,7 @@ export function TasksPage() {
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === 'API_KEY_REQUIRED') {
-          setAiError('Please add your Moonshot AI API key in Settings to use AI breakdown');
+          setAiError('Please add your Claude API key to use AI breakdown');
         } else {
           setAiError(error.message);
         }
@@ -131,6 +132,43 @@ export function TasksPage() {
 
   const removeAiStep = (index: number) => {
     setAiGeneratedSteps(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // AI breakdown for existing tasks
+  const handleBreakdownExistingTask = async (task: Task) => {
+    if (!settings?.apiKey) {
+      alert('Please add your Claude API key first');
+      return;
+    }
+
+    setBreakingDownTaskId(task.id!);
+
+    try {
+      const steps = await generateMicroSteps(
+        task.title,
+        task.description || undefined,
+        task.resistance || 5,
+        settings.apiKey
+      );
+
+      // Convert to TaskStep format and update the task
+      const taskSteps: TaskStep[] = steps.map((step, i) => ({
+        id: `step-${i}-${Date.now()}`,
+        text: step.text,
+        completed: false,
+        estimatedMinutes: step.estimatedMinutes,
+      }));
+
+      await updateTask(task.id!, { steps: taskSteps });
+
+      // Auto-expand to show the new steps
+      setExpandedTasks(prev => new Set([...prev, task.id!]));
+    } catch (error) {
+      console.error('Failed to breakdown task:', error);
+      alert('Failed to generate steps. Please try again.');
+    } finally {
+      setBreakingDownTaskId(null);
+    }
   };
 
   const updateAiStep = (index: number, text: string) => {
@@ -414,6 +452,27 @@ export function TasksPage() {
                         size="sm"
                       />
                     </div>
+                  )}
+
+                  {/* AI Breakdown button for tasks without steps */}
+                  {task.steps.length === 0 && task.status !== 'completed' && (
+                    <button
+                      onClick={() => handleBreakdownExistingTask(task)}
+                      disabled={breakingDownTaskId === task.id}
+                      className="mt-2 flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 disabled:text-slate-500 transition-colors"
+                    >
+                      {breakingDownTaskId === task.id ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Breaking down...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-3 h-3" />
+                          AI Break Down
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
 
