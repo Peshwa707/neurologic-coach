@@ -22,6 +22,7 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const recordingTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
 
   const MAX_DURATION = 60; // 1 minute for quick capture
 
@@ -36,37 +37,35 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
         recognition.lang = (settings?.voiceLanguage || 'en-US') as VoiceLanguageCode;
 
         recognition.onresult = (event) => {
-          let finalTranscript = '';
-          let interimTranscript = '';
+          // Build complete transcript from ALL results to avoid duplicates
+          let fullFinal = '';
+          let currentInterim = '';
 
-          for (let i = event.resultIndex; i < event.results.length; i++) {
+          for (let i = 0; i < event.results.length; i++) {
             const result = event.results[i];
             if (result.isFinal) {
-              finalTranscript += result[0].transcript + ' ';
+              fullFinal += result[0].transcript + ' ';
             } else {
-              interimTranscript += result[0].transcript;
+              currentInterim += result[0].transcript;
             }
           }
 
-          setTranscript(prev => {
-            const cleaned = prev.replace(/ \[listening\.\.\.\]$/, '');
-            const newText = cleaned + finalTranscript;
-            return interimTranscript ? newText + ' [listening...]' : newText;
-          });
+          const displayText = fullFinal.trim() + (currentInterim ? ' [listening...]' : '');
+          setTranscript(displayText);
         };
 
         recognition.onerror = (event) => {
-          if (event.error !== 'no-speech') {
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error('Speech recognition error:', event.error);
             stopRecording();
           }
         };
 
         recognition.onend = () => {
-          if (isRecording) {
+          if (isRecordingRef.current) {
             try {
               recognition.start();
-            } catch (e) {
+            } catch {
               // Ignore
             }
           }
@@ -85,6 +84,7 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
 
   const startRecording = () => {
     setIsRecording(true);
+    isRecordingRef.current = true;
     setTranscript('');
     setResult(null);
     recordingTimeRef.current = 0;
@@ -100,6 +100,7 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
   };
 
   const stopRecording = () => {
+    isRecordingRef.current = false;
     setIsRecording(false);
     recognitionRef.current?.stop();
 

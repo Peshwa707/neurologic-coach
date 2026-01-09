@@ -37,6 +37,8 @@ export function VoiceInput({
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timerRef = useRef<number | null>(null);
+  const finalTranscriptRef = useRef<string>('');
+  const isRecordingRef = useRef<boolean>(false);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -51,37 +53,40 @@ export function VoiceInput({
     recognition.lang = language;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+      // Build complete transcript from all results
+      let fullFinal = '';
+      let currentInterim = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          finalTranscript += result[0].transcript + ' ';
+          fullFinal += result[0].transcript + ' ';
         } else {
-          interimTranscript += result[0].transcript;
+          currentInterim += result[0].transcript;
         }
       }
 
-      setTranscript((prev) => {
-        const base = prev.replace(/\[listening...\]$/, '').trim();
-        const newText = (base + ' ' + finalTranscript).trim();
-        if (finalTranscript) {
-          onTranscript(newText);
-        }
-        return newText + (interimTranscript ? ' [listening...]' : '');
-      });
+      // Update only if we have new content
+      const trimmedFinal = fullFinal.trim();
+      if (trimmedFinal !== finalTranscriptRef.current) {
+        finalTranscriptRef.current = trimmedFinal;
+        onTranscript(trimmedFinal);
+      }
+
+      const displayText = trimmedFinal + (currentInterim ? ' [listening...]' : '');
+      setTranscript(displayText);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error:', event.error);
-      if (event.error !== 'no-speech') {
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
         stopRecording();
       }
     };
 
     recognition.onend = () => {
-      if (isRecording) {
+      // Only restart if still recording
+      if (isRecordingRef.current) {
         try {
           recognition.start();
         } catch {}
@@ -102,12 +107,15 @@ export function VoiceInput({
     setTranscript('');
     setRecordingTime(0);
     setIsRecording(true);
+    isRecordingRef.current = true;
+    finalTranscriptRef.current = '';
     onRecordingChange?.(true);
 
     try {
       recognitionRef.current.start();
     } catch {
       setIsRecording(false);
+      isRecordingRef.current = false;
       onRecordingChange?.(false);
       return;
     }
@@ -124,6 +132,7 @@ export function VoiceInput({
   };
 
   const stopRecording = () => {
+    isRecordingRef.current = false;
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
@@ -133,7 +142,7 @@ export function VoiceInput({
     setIsRecording(false);
     onRecordingChange?.(false);
 
-    const cleanTranscript = transcript.replace(/\[listening...\]$/, '').trim();
+    const cleanTranscript = finalTranscriptRef.current;
     setTranscript(cleanTranscript);
     if (cleanTranscript) {
       onTranscript(cleanTranscript);

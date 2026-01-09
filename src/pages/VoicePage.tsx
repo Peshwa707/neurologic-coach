@@ -26,6 +26,7 @@ export function VoicePage() {
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timerRef = useRef<number | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
 
   const MAX_DURATION = 300; // 5 minutes in seconds
 
@@ -42,22 +43,21 @@ export function VoicePage() {
     recognition.lang = settings?.voiceLanguage || 'en-US';
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
+      // Build complete transcript from ALL results to avoid duplicates
+      let fullFinal = '';
+      let currentInterim = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          finalTranscript += result[0].transcript + ' ';
+          fullFinal += result[0].transcript + ' ';
         } else {
-          interimTranscript += result[0].transcript;
+          currentInterim += result[0].transcript;
         }
       }
 
-      setTranscript((prev) => {
-        const base = prev.replace(/\[listening...\]$/, '').trim();
-        return (base + ' ' + finalTranscript + (interimTranscript ? ' [listening...]' : '')).trim();
-      });
+      const displayText = fullFinal.trim() + (currentInterim ? ' [listening...]' : '');
+      setTranscript(displayText);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -68,7 +68,8 @@ export function VoicePage() {
     };
 
     recognition.onend = () => {
-      if (isRecording) {
+      // Only restart if still recording
+      if (isRecordingRef.current) {
         try {
           recognition.start();
         } catch {}
@@ -95,12 +96,14 @@ export function VoicePage() {
     setCreatedUrges(new Set());
     setRecordingTime(0);
     setIsRecording(true);
+    isRecordingRef.current = true;
 
     try {
       recognitionRef.current.start();
     } catch {
       setError('Failed to start recording. Please try again.');
       setIsRecording(false);
+      isRecordingRef.current = false;
       return;
     }
 
@@ -116,6 +119,7 @@ export function VoicePage() {
   };
 
   const stopRecording = async () => {
+    isRecordingRef.current = false;
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
