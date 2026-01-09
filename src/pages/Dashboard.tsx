@@ -11,9 +11,12 @@ import {
   Zap,
   Target,
   Smile,
+  Key,
+  X,
+  Check,
 } from 'lucide-react';
 import { Card, CardHeader } from '../components/common';
-import { useTasks, useTodayPomodoros, useRecentMoodLogs, getWeeklyStats } from '../hooks/useDatabase';
+import { useTasks, useTodayPomodoros, useRecentMoodLogs, getWeeklyStats, useSettings, updateSettings } from '../hooks/useDatabase';
 
 interface WeeklyStats {
   completedTasks: number;
@@ -28,11 +31,24 @@ export function Dashboard() {
   const tasks = useTasks('pending');
   const todayPomodoros = useTodayPomodoros();
   const recentMoods = useRecentMoodLogs(5);
+  const settings = useSettings();
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     getWeeklyStats().then(setWeeklyStats);
   }, []);
+
+  const handleSaveApiKey = async () => {
+    await updateSettings({ apiKey });
+    setSaved(true);
+    setTimeout(() => {
+      setSaved(false);
+      setShowApiKeyInput(false);
+    }, 1500);
+  };
 
   const quickActions = [
     { to: '/time', icon: Clock, label: 'Start Timer', color: 'from-blue-500 to-cyan-500' },
@@ -46,6 +62,62 @@ export function Dashboard() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-24 md:pb-6">
+      {/* API Key Setup Banner - Shows when no API key */}
+      {!settings?.apiKey && (
+        <div className="bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl p-4 shadow-lg">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Key className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white">Setup Required</h3>
+              <p className="text-amber-100 text-sm mt-1">
+                Add your Claude API key to enable AI coaching features
+              </p>
+
+              {!showApiKeyInput ? (
+                <button
+                  onClick={() => setShowApiKeyInput(true)}
+                  className="mt-3 px-4 py-2 bg-white text-amber-600 font-medium rounded-lg hover:bg-amber-50 transition-colors"
+                >
+                  Add API Key
+                </button>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-ant-api03-..."
+                    className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-white placeholder-amber-200 focus:outline-none focus:border-white"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveApiKey}
+                      disabled={!apiKey.trim()}
+                      className="flex-1 py-2 bg-white text-amber-600 font-medium rounded-lg hover:bg-amber-50 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {saved ? <Check className="w-4 h-4" /> : <Key className="w-4 h-4" />}
+                      {saved ? 'Saved!' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setShowApiKeyInput(false)}
+                      className="px-3 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-amber-200">
+                    Get your key at console.anthropic.com
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white">
