@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
-import { QuickCapture, ReminderChecker } from './components/common';
+import { QuickCapture, ReminderChecker, InstallPrompt } from './components/common';
 import { Dashboard } from './pages/Dashboard';
 import { TimePage } from './pages/TimePage';
 import { TasksPage } from './pages/TasksPage';
@@ -39,6 +39,7 @@ function App() {
         </main>
         <QuickCapture />
         <ReminderChecker />
+        <InstallPrompt />
       </div>
     </BrowserRouter>
   );

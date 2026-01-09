@@ -7,3 +7,4 @@ export { VoiceInput, VOICE_LANGUAGES } from './VoiceInput';
 export type { VoiceLanguageCode } from './VoiceInput';
 export { QuickCapture } from './QuickCapture';
 export { ReminderChecker } from './ReminderChecker';
+export { InstallPrompt } from './InstallPrompt';
