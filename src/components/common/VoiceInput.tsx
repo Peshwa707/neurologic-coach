@@ -37,7 +37,7 @@ export function VoiceInput({
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timerRef = useRef<number | null>(null);
-  const finalTranscriptRef = useRef<string>('');
+  const accumulatedTranscriptRef = useRef<string>('');
   const isRecordingRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -48,33 +48,31 @@ export function VoiceInput({
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false; // Disable continuous for Android compatibility
     recognition.interimResults = true;
     recognition.lang = language;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      // Build complete transcript from all results
-      let fullFinal = '';
+      let sessionFinal = '';
       let currentInterim = '';
 
       for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          fullFinal += result[0].transcript + ' ';
+          sessionFinal += result[0].transcript + ' ';
         } else {
           currentInterim += result[0].transcript;
         }
       }
 
-      // Update only if we have new content
-      const trimmedFinal = fullFinal.trim();
-      if (trimmedFinal !== finalTranscriptRef.current) {
-        finalTranscriptRef.current = trimmedFinal;
-        onTranscript(trimmedFinal);
+      // When we get final results, add to accumulated
+      if (sessionFinal.trim()) {
+        accumulatedTranscriptRef.current = (accumulatedTranscriptRef.current + ' ' + sessionFinal).trim();
+        onTranscript(accumulatedTranscriptRef.current);
       }
 
-      const displayText = trimmedFinal + (currentInterim ? ' [listening...]' : '');
-      setTranscript(displayText);
+      const displayText = accumulatedTranscriptRef.current + (currentInterim ? ' ' + currentInterim + ' [listening...]' : '');
+      setTranscript(displayText.trim());
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -85,11 +83,15 @@ export function VoiceInput({
     };
 
     recognition.onend = () => {
-      // Only restart if still recording
+      // Restart if still recording (non-continuous mode ends after each phrase)
       if (isRecordingRef.current) {
-        try {
-          recognition.start();
-        } catch {}
+        setTimeout(() => {
+          if (isRecordingRef.current) {
+            try {
+              recognition.start();
+            } catch {}
+          }
+        }, 100);
       }
     };
 
@@ -108,7 +110,7 @@ export function VoiceInput({
     setRecordingTime(0);
     setIsRecording(true);
     isRecordingRef.current = true;
-    finalTranscriptRef.current = '';
+    accumulatedTranscriptRef.current = '';
     onRecordingChange?.(true);
 
     try {
@@ -142,7 +144,7 @@ export function VoiceInput({
     setIsRecording(false);
     onRecordingChange?.(false);
 
-    const cleanTranscript = finalTranscriptRef.current;
+    const cleanTranscript = accumulatedTranscriptRef.current;
     setTranscript(cleanTranscript);
     if (cleanTranscript) {
       onTranscript(cleanTranscript);

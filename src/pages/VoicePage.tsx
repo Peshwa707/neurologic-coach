@@ -27,6 +27,7 @@ export function VoicePage() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timerRef = useRef<number | null>(null);
   const isRecordingRef = useRef<boolean>(false);
+  const accumulatedTranscriptRef = useRef<string>('');
 
   const MAX_DURATION = 300; // 5 minutes in seconds
 
@@ -38,26 +39,31 @@ export function VoicePage() {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false; // Disable continuous for Android compatibility
     recognition.interimResults = true;
     recognition.lang = settings?.voiceLanguage || 'en-US';
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      // Build complete transcript from ALL results to avoid duplicates
-      let fullFinal = '';
+      let sessionFinal = '';
       let currentInterim = '';
 
+      // Process only results from this session
       for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          fullFinal += result[0].transcript + ' ';
+          sessionFinal += result[0].transcript + ' ';
         } else {
           currentInterim += result[0].transcript;
         }
       }
 
-      const displayText = fullFinal.trim() + (currentInterim ? ' [listening...]' : '');
-      setTranscript(displayText);
+      // When we get final results, add to accumulated
+      if (sessionFinal.trim()) {
+        accumulatedTranscriptRef.current = (accumulatedTranscriptRef.current + ' ' + sessionFinal).trim();
+      }
+
+      const displayText = accumulatedTranscriptRef.current + (currentInterim ? ' ' + currentInterim + ' [listening...]' : '');
+      setTranscript(displayText.trim());
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -68,11 +74,15 @@ export function VoicePage() {
     };
 
     recognition.onend = () => {
-      // Only restart if still recording
+      // Restart if still recording (non-continuous mode ends after each phrase)
       if (isRecordingRef.current) {
-        try {
-          recognition.start();
-        } catch {}
+        setTimeout(() => {
+          if (isRecordingRef.current) {
+            try {
+              recognition.start();
+            } catch {}
+          }
+        }, 100);
       }
     };
 
@@ -97,6 +107,7 @@ export function VoicePage() {
     setRecordingTime(0);
     setIsRecording(true);
     isRecordingRef.current = true;
+    accumulatedTranscriptRef.current = '';
 
     try {
       recognitionRef.current.start();

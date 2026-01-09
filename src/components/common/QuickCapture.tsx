@@ -23,6 +23,7 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
   const recordingTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRecordingRef = useRef<boolean>(false);
+  const accumulatedTranscriptRef = useRef<string>('');
 
   const MAX_DURATION = 60; // 1 minute for quick capture
 
@@ -32,26 +33,30 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        recognition.continuous = false; // Disable continuous for Android compatibility
         recognition.interimResults = true;
         recognition.lang = (settings?.voiceLanguage || 'en-US') as VoiceLanguageCode;
 
         recognition.onresult = (event) => {
-          // Build complete transcript from ALL results to avoid duplicates
-          let fullFinal = '';
+          let sessionFinal = '';
           let currentInterim = '';
 
           for (let i = 0; i < event.results.length; i++) {
             const result = event.results[i];
             if (result.isFinal) {
-              fullFinal += result[0].transcript + ' ';
+              sessionFinal += result[0].transcript + ' ';
             } else {
               currentInterim += result[0].transcript;
             }
           }
 
-          const displayText = fullFinal.trim() + (currentInterim ? ' [listening...]' : '');
-          setTranscript(displayText);
+          // When we get final results, add to accumulated
+          if (sessionFinal.trim()) {
+            accumulatedTranscriptRef.current = (accumulatedTranscriptRef.current + ' ' + sessionFinal).trim();
+          }
+
+          const displayText = accumulatedTranscriptRef.current + (currentInterim ? ' ' + currentInterim + ' [listening...]' : '');
+          setTranscript(displayText.trim());
         };
 
         recognition.onerror = (event) => {
@@ -63,11 +68,15 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
 
         recognition.onend = () => {
           if (isRecordingRef.current) {
-            try {
-              recognition.start();
-            } catch {
-              // Ignore
-            }
+            setTimeout(() => {
+              if (isRecordingRef.current) {
+                try {
+                  recognition.start();
+                } catch {
+                  // Ignore
+                }
+              }
+            }, 100);
           }
         };
 
@@ -85,6 +94,7 @@ export function QuickCapture({ className = '' }: QuickCaptureProps) {
   const startRecording = () => {
     setIsRecording(true);
     isRecordingRef.current = true;
+    accumulatedTranscriptRef.current = '';
     setTranscript('');
     setResult(null);
     recordingTimeRef.current = 0;
