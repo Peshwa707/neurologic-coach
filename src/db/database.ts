@@ -9,6 +9,11 @@ export interface Settings {
   pomodoroBreak: number;
   theme: 'dark' | 'light';
   voiceLanguage: string;
+  // New ADHD-focused settings
+  zenMode: boolean;
+  chimeInterval: number; // minutes (0 = disabled, 15, 30, 60, 120)
+  showRollingStats: boolean;
+  sidebarCollapsed: boolean;
 }
 
 export interface Task {
@@ -255,6 +260,10 @@ export async function initializeDatabase() {
       pomodoroBreak: 5,
       theme: 'dark',
       voiceLanguage: 'en-US',
+      zenMode: false,
+      chimeInterval: 0,
+      showRollingStats: true,
+      sidebarCollapsed: false,
     });
   }
 

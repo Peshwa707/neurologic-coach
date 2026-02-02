@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Key, Clock, Download, Upload, Trash2, Languages } from 'lucide-react';
+import { Save, Key, Clock, Download, Upload, Trash2, Languages, Sparkles, Bell, BarChart3 } from 'lucide-react';
 import { Card, CardHeader, Button, Input, VOICE_LANGUAGES } from '../components/common';
 import { useSettings, updateSettings } from '../hooks/useDatabase';
 import { db } from '../db/database';
@@ -10,6 +10,9 @@ export function Settings() {
   const [pomodoroWork, setPomodoroWork] = useState(25);
   const [pomodoroBreak, setPomodoroBreak] = useState(5);
   const [voiceLanguage, setVoiceLanguage] = useState('en-US');
+  const [zenMode, setZenMode] = useState(false);
+  const [chimeInterval, setChimeInterval] = useState(0);
+  const [showRollingStats, setShowRollingStats] = useState(true);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -18,6 +21,9 @@ export function Settings() {
       setPomodoroWork(settings.pomodoroWork || 25);
       setPomodoroBreak(settings.pomodoroBreak || 5);
       setVoiceLanguage(settings.voiceLanguage || 'en-US');
+      setZenMode(settings.zenMode || false);
+      setChimeInterval(settings.chimeInterval || 0);
+      setShowRollingStats(settings.showRollingStats !== false);
     }
   }, [settings]);
 
@@ -27,6 +33,9 @@ export function Settings() {
       pomodoroWork,
       pomodoroBreak,
       voiceLanguage,
+      zenMode,
+      chimeInterval,
+      showRollingStats,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -203,6 +212,107 @@ export function Settings() {
               <p className="text-xs text-slate-500 mt-2">
                 This language will be used for all voice-to-text features throughout the app.
               </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ADHD-Focused Settings */}
+      <Card>
+        <CardHeader
+          title="Focus & Awareness"
+          subtitle="ADHD-friendly features to support your workflow"
+        />
+        <div className="space-y-6">
+          {/* Zen Mode */}
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-purple-400 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">
+                    Zen Mode Dashboard
+                  </label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Minimal view - just your current task and timer
+                  </p>
+                </div>
+                <button
+                  onClick={() => setZenMode(!zenMode)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    zenMode ? 'bg-purple-600' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      zenMode ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Anchoring Chimes */}
+          <div className="flex items-start gap-3">
+            <Bell className="w-5 h-5 text-amber-400 mt-0.5" />
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Time Anchoring Chimes
+              </label>
+              <p className="text-xs text-slate-500 mb-3">
+                Gentle reminders to stay aware of passing time
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {[
+                  { value: 0, label: 'Off' },
+                  { value: 15, label: '15m' },
+                  { value: 30, label: '30m' },
+                  { value: 60, label: '1hr' },
+                  { value: 120, label: '2hr' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setChimeInterval(option.value)}
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      chimeInterval === option.value
+                        ? 'border-amber-500 bg-amber-500/20 text-amber-300'
+                        : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Rolling Stats */}
+          <div className="flex items-start gap-3">
+            <BarChart3 className="w-5 h-5 text-emerald-400 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">
+                    Rolling Window Stats
+                  </label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Show "3 of 5 days" instead of streaks (less shame, more reality)
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRollingStats(!showRollingStats)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    showRollingStats ? 'bg-emerald-600' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      showRollingStats ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
         </div>

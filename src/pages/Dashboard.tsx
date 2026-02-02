@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Clock,
   CheckSquare,
@@ -14,9 +14,11 @@ import {
   Key,
   X,
   Check,
+  Rocket,
+  Play,
 } from 'lucide-react';
 import { Card, CardHeader } from '../components/common';
-import { useTasks, useTodayPomodoros, useRecentMoodLogs, getWeeklyStats, useSettings, updateSettings } from '../hooks/useDatabase';
+import { useTasks, useTodayPomodoros, useRecentMoodLogs, getWeeklyStats, useSettings, updateSettings, getRollingWindowStats, getTopPriorityTask } from '../hooks/useDatabase';
 
 interface WeeklyStats {
   completedTasks: number;
@@ -27,19 +29,44 @@ interface WeeklyStats {
   moodLogs: number;
 }
 
+interface RollingStats {
+  activeDays: number;
+  totalDays: number;
+  totalFocusMinutes: number;
+  message: string;
+}
+
 export function Dashboard() {
+  const navigate = useNavigate();
   const tasks = useTasks('pending');
   const todayPomodoros = useTodayPomodoros();
   const recentMoods = useRecentMoodLogs(5);
   const settings = useSettings();
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
+  const [rollingStats, setRollingStats] = useState<RollingStats | null>(null);
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
+  const [topTask, setTopTask] = useState<{ id: number; title: string } | null>(null);
 
   useEffect(() => {
     getWeeklyStats().then(setWeeklyStats);
+    getRollingWindowStats(5).then(setRollingStats);
+    getTopPriorityTask().then(task => {
+      if (task) setTopTask({ id: task.id!, title: task.title });
+    });
   }, []);
+
+  const handleEmergencyStart = async () => {
+    const task = await getTopPriorityTask();
+    if (task) {
+      // Navigate to time page with the task to start immediately
+      navigate('/time', { state: { quickStartTaskId: task.id, quickStartTaskTitle: task.title } });
+    } else {
+      // No tasks, just go to time page
+      navigate('/time');
+    }
+  };
 
   const handleSaveApiKey = async () => {
     await updateSettings({ apiKey });
@@ -132,21 +159,64 @@ export function Dashboard() {
         </p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {quickActions.map((action) => (
-          <Link key={action.to} to={action.to}>
-            <Card hoverable className="h-full">
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center mb-3`}>
-                <action.icon className="w-5 h-5 text-white" />
-              </div>
-              <p className="font-medium text-white">{action.label}</p>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {/* Emergency Start Button - Always visible, even in Zen Mode */}
+      <button
+        onClick={handleEmergencyStart}
+        className="w-full p-4 rounded-xl bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 transition-all shadow-lg hover:shadow-rose-500/25 group"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
+              <Rocket className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-bold text-white text-lg">Emergency Start</h3>
+              <p className="text-rose-100 text-sm">
+                {topTask ? `Start: ${topTask.title.slice(0, 30)}${topTask.title.length > 30 ? '...' : ''}` : 'No decisions. Just momentum.'}
+              </p>
+            </div>
+          </div>
+          <Play className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+        </div>
+      </button>
 
-      {/* Stats Grid */}
+      {/* Zen Mode: Show minimal UI */}
+      {settings?.zenMode ? (
+        <Card className="border-purple-900/50 bg-purple-950/20">
+          <div className="text-center py-8">
+            <p className="text-slate-400 text-sm mb-2">Focus Time Today</p>
+            <p className="text-4xl font-bold text-white mb-4">
+              {todayPomodoros?.filter(p => p.type === 'work' && !p.interrupted).reduce((sum, p) => sum + p.duration, 0) || 0}m
+            </p>
+            <p className="text-slate-500 text-sm">
+              {rollingStats?.message || '0 of 5 days'} with focus sessions
+            </p>
+            <Link
+              to="/time"
+              className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-lg transition-colors"
+            >
+              <Clock className="w-5 h-5" />
+              Start Focus Session
+            </Link>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {quickActions.map((action) => (
+              <Link key={action.to} to={action.to}>
+                <Card hoverable className="h-full">
+                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center mb-3`}>
+                    <action.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <p className="font-medium text-white">{action.label}</p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <div className="flex items-center gap-3">
@@ -303,6 +373,8 @@ export function Dashboard() {
           </Card>
         </Link>
       </div>
+        </>
+      )}
     </div>
   );
 }

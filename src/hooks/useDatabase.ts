@@ -214,6 +214,72 @@ export async function getWeeklyStats() {
   };
 }
 
+// Rolling window stats (ADHD-friendly - no streaks!)
+export async function getRollingWindowStats(windowDays = 5) {
+  const results: { date: string; hadActivity: boolean; focusMinutes: number }[] = [];
+  const today = new Date();
+
+  for (let i = 0; i < windowDays; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dayStart = new Date(date.setHours(0, 0, 0, 0));
+    const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+
+    const pomodoros = await db.pomodoroSessions
+      .where('completedAt')
+      .between(dayStart, dayEnd)
+      .filter(p => p.type === 'work')
+      .toArray();
+
+    const focusMinutes = pomodoros.reduce((sum, p) => sum + p.duration, 0);
+
+    results.push({
+      date: dayStart.toISOString().split('T')[0],
+      hadActivity: pomodoros.length > 0,
+      focusMinutes,
+    });
+  }
+
+  const activeDays = results.filter(r => r.hadActivity).length;
+  const totalFocusMinutes = results.reduce((sum, r) => sum + r.focusMinutes, 0);
+
+  return {
+    activeDays,
+    totalDays: windowDays,
+    totalFocusMinutes,
+    days: results,
+    message: `${activeDays} of ${windowDays} days`, // e.g., "3 of 5 days"
+  };
+}
+
+// Get highest priority task for Emergency Start
+export async function getTopPriorityTask() {
+  // First try tasks with deadlines (most urgent)
+  const withDeadlines = await db.tasks
+    .where('status')
+    .equals('pending')
+    .filter(t => t.deadline !== undefined)
+    .sortBy('deadline');
+
+  if (withDeadlines.length > 0) {
+    return withDeadlines[0];
+  }
+
+  // Then get by highest resistance (hardest tasks often need momentum)
+  const byResistance = await db.tasks
+    .where('status')
+    .equals('pending')
+    .toArray();
+
+  if (byResistance.length > 0) {
+    // Sort by resistance descending (tackle hard stuff with momentum)
+    byResistance.sort((a, b) => (b.resistance || 0) - (a.resistance || 0));
+    return byResistance[0];
+  }
+
+  return null;
+}
+
 // Coach session hooks
 export function useCoachSessions(limit = 20) {
   return useLiveQuery(
