@@ -16,9 +16,10 @@ import {
   Check,
   Rocket,
   Play,
+  Layers,
 } from 'lucide-react';
 import { Card, CardHeader } from '../components/common';
-import { EnergyMatcher } from '../components/focus';
+import { EnergyMatcher, MoodGreeting, TaskTemplates } from '../components/focus';
 import { useTasks, useTodayPomodoros, useRecentMoodLogs, getWeeklyStats, useSettings, updateSettings, getRollingWindowStats, getTopPriorityTask } from '../hooks/useDatabase';
 
 interface WeeklyStats {
@@ -49,6 +50,7 @@ export function Dashboard() {
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [topTask, setTopTask] = useState<{ id: number; title: string } | null>(null);
+  const [showTaskTemplates, setShowTaskTemplates] = useState(false);
 
   useEffect(() => {
     getWeeklyStats().then(setWeeklyStats);
@@ -146,19 +148,8 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">
-          Welcome Back
-        </h1>
-        <p className="text-slate-400 mt-1">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
-      </div>
+      {/* Personalized Greeting */}
+      <MoodGreeting />
 
       {/* Emergency Start Button - Always visible, even in Zen Mode */}
       <button
@@ -218,6 +209,15 @@ export function Dashboard() {
                 </Card>
               </Link>
             ))}
+            {/* Task Templates Button */}
+            <button onClick={() => setShowTaskTemplates(true)} className="text-left">
+              <Card hoverable className="h-full">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mb-3">
+                  <Layers className="w-5 h-5 text-white" />
+                </div>
+                <p className="font-medium text-white">Templates</p>
+              </Card>
+            </button>
           </div>
 
           {/* Stats Grid */}
@@ -379,6 +379,9 @@ export function Dashboard() {
       </div>
         </>
       )}
+
+      {/* Task Templates Modal */}
+      <TaskTemplates isOpen={showTaskTemplates} onClose={() => setShowTaskTemplates(false)} />
     </div>
   );
 }

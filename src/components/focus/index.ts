@@ -8,3 +8,6 @@ export { QuickWin } from './QuickWin';
 export { EnergyMatcher } from './EnergyMatcher';
 export { MicroStart, useMicroStart } from './MicroStart';
 export { TransitionRitual } from './TransitionRitual';
+export { FocusMode } from './FocusMode';
+export { MoodGreeting } from './MoodGreeting';
+export { TaskTemplates } from './TaskTemplates';
