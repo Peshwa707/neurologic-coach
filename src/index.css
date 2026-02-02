@@ -56,3 +56,19 @@ body {
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
+
+/* Confetti animation for celebrations */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti-fall 3s linear forwards;
+}

@@ -158,6 +158,16 @@ export interface Reminder {
   triggeredAt?: Date;
 }
 
+// Win Tracker - small victories for positive reinforcement
+export interface Win {
+  id?: number;
+  title: string;
+  category: 'task' | 'focus' | 'habit' | 'milestone' | 'personal';
+  description?: string;
+  celebrationLevel: 1 | 2 | 3; // 1=small, 2=medium, 3=big
+  timestamp: Date;
+}
+
 // Database class
 class ExecFunctionDB extends Dexie {
   settings!: Table<Settings>;
@@ -171,6 +181,7 @@ class ExecFunctionDB extends Dexie {
   journalEntries!: Table<JournalEntry>;
   coachSessions!: Table<CoachSession>;
   reminders!: Table<Reminder>;
+  wins!: Table<Win>;
 
   constructor() {
     super('ExecFunctionDB');
@@ -245,6 +256,22 @@ class ExecFunctionDB extends Dexie {
       journalEntries: '++id, timestamp',
       coachSessions: '++id, createdAt, updatedAt',
       reminders: '++id, taskId, triggerType, createdAt',
+    });
+
+    // Version 6: Added wins table for positive reinforcement tracking
+    this.version(6).stores({
+      settings: '++id',
+      tasks: '++id, status, createdAt, deadline',
+      timeBlocks: '++id, date, startTime, taskId',
+      pomodoroSessions: '++id, completedAt, taskId',
+      moodLogs: '++id, timestamp, mood, energy',
+      thoughtDumps: '++id, timestamp',
+      impulseLogs: '++id, timestamp, outcome',
+      copingStrategies: '++id, category',
+      journalEntries: '++id, timestamp',
+      coachSessions: '++id, createdAt, updatedAt',
+      reminders: '++id, taskId, triggerType, createdAt',
+      wins: '++id, category, timestamp',
     });
   }
 }

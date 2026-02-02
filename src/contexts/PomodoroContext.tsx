@@ -8,6 +8,12 @@ interface ParkingLotItem {
   createdAt: Date;
 }
 
+interface SessionSummaryData {
+  isOpen: boolean;
+  duration: number;
+  wasInterrupted: boolean;
+}
+
 interface PomodoroContextType {
   timeLeft: number;
   isRunning: boolean;
@@ -18,6 +24,7 @@ interface PomodoroContextType {
   workDuration: number;
   breakDuration: number;
   parkingLot: ParkingLotItem[];
+  sessionSummary: SessionSummaryData;
   toggleTimer: () => void;
   resetTimer: () => Promise<void>;
   setIsWorkSession: (isWork: boolean) => void;
@@ -25,6 +32,7 @@ interface PomodoroContextType {
   clearParkingLot: () => void;
   removeFromParkingLot: (id: string) => void;
   convertToTask: (item: ParkingLotItem) => Promise<void>;
+  closeSessionSummary: () => void;
 }
 
 const PomodoroContext = createContext<PomodoroContextType | null>(null);
@@ -40,6 +48,11 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [isRunning, setIsRunning] = useState(false);
   const [isWorkSession, setIsWorkSessionState] = useState(true);
   const [parkingLot, setParkingLot] = useState<ParkingLotItem[]>([]);
+  const [sessionSummary, setSessionSummary] = useState<SessionSummaryData>({
+    isOpen: false,
+    duration: 0,
+    wasInterrupted: false,
+  });
 
   // Load parking lot from localStorage on mount
   useEffect(() => {
@@ -67,6 +80,9 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   }, [workDuration, breakDuration, isWorkSession, isRunning]);
 
   const handleSessionComplete = useCallback(async () => {
+    const wasWorkSession = isWorkSession;
+    const sessionDuration = wasWorkSession ? (settings?.pomodoroWork || 25) : (settings?.pomodoroBreak || 5);
+
     setIsRunning(false);
 
     // Play notification sound
@@ -91,11 +107,20 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
 
     // Log the session
     await addPomodoroSession({
-      duration: isWorkSession ? (settings?.pomodoroWork || 25) : (settings?.pomodoroBreak || 5),
-      type: isWorkSession ? 'work' : 'break',
+      duration: sessionDuration,
+      type: wasWorkSession ? 'work' : 'break',
       completedAt: new Date(),
       interrupted: false,
     });
+
+    // Show session summary for completed work sessions
+    if (wasWorkSession) {
+      setSessionSummary({
+        isOpen: true,
+        duration: sessionDuration,
+        wasInterrupted: false,
+      });
+    }
 
     // Switch session type
     setIsWorkSessionState((prev) => !prev);
@@ -185,6 +210,10 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     removeFromParkingLot(item.id);
   }, [removeFromParkingLot]);
 
+  const closeSessionSummary = useCallback(() => {
+    setSessionSummary(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
   const totalDuration = isWorkSession ? workDuration : breakDuration;
   const progress = ((totalDuration - timeLeft) / totalDuration) * 100;
 
@@ -202,6 +231,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       workDuration,
       breakDuration,
       parkingLot,
+      sessionSummary,
       toggleTimer,
       resetTimer,
       setIsWorkSession,
@@ -209,6 +239,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       clearParkingLot,
       removeFromParkingLot,
       convertToTask,
+      closeSessionSummary,
     }}>
       {children}
     </PomodoroContext.Provider>

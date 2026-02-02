@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import type { Settings, Task, MoodLog, ThoughtDump, TimeBlock, PomodoroSession, ImpulseLog, CopingStrategy, JournalEntry, CoachSession, ChatMessage } from '../db/database';
+import type { Settings, Task, MoodLog, ThoughtDump, TimeBlock, PomodoroSession, ImpulseLog, CopingStrategy, JournalEntry, CoachSession, ChatMessage, Win } from '../db/database';
 
 // Re-export types for convenience
-export type { Task, TaskStep, ThoughtDump, MoodLog, TimeBlock, PomodoroSession, ImpulseLog, CopingStrategy, JournalEntry, Settings, CoachSession, ChatMessage, Reminder } from '../db/database';
+export type { Task, TaskStep, ThoughtDump, MoodLog, TimeBlock, PomodoroSession, ImpulseLog, CopingStrategy, JournalEntry, Settings, CoachSession, ChatMessage, Reminder, Win } from '../db/database';
 
 // Settings hooks
 export function useSettings() {
@@ -382,4 +382,56 @@ export async function triggerReminder(id: number) {
 
 export async function deleteReminder(id: number) {
   return db.reminders.delete(id);
+}
+
+// Win tracker hooks - positive reinforcement for ADHD brains
+export function useRecentWins(limit = 10) {
+  return useLiveQuery(
+    () => db.wins.orderBy('timestamp').reverse().limit(limit).toArray()
+  );
+}
+
+export function useTodayWins() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return useLiveQuery(
+    () => db.wins.where('timestamp').above(today).toArray()
+  );
+}
+
+export async function addWin(win: Omit<Win, 'id'>) {
+  return db.wins.add(win);
+}
+
+export async function getWinStreak() {
+  // Count consecutive days with at least one win (for motivation, not punishment)
+  const wins = await db.wins.orderBy('timestamp').reverse().limit(100).toArray();
+  if (wins.length === 0) return 0;
+
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i <= 30; i++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dayStart = new Date(checkDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(checkDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const dayWins = wins.filter(w => {
+      const winDate = new Date(w.timestamp);
+      return winDate >= dayStart && winDate <= dayEnd;
+    });
+
+    if (dayWins.length > 0) {
+      streak++;
+    } else if (i > 0) {
+      // Allow today to not have wins yet
+      break;
+    }
+  }
+
+  return streak;
 }
