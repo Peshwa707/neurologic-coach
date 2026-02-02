@@ -13,8 +13,12 @@ import { CoachPage } from './pages/CoachPage';
 import { Settings } from './pages/Settings';
 import { RoomOrganizerPage } from './pages/RoomOrganizerPage';
 import { initializeDatabase } from './db/database';
+import { useTimeChime } from './hooks/useTimeChime';
 
 function App() {
+  // Initialize time anchoring chimes
+  useTimeChime();
+
   useEffect(() => {
     initializeDatabase().catch(err => {
       console.error('Database initialization failed:', err);

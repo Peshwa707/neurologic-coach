@@ -430,10 +430,24 @@ export function TasksPage() {
                         {format(new Date(task.deadline), 'MMM d')}
                       </span>
                     )}
-                    {task.resistance >= 7 && (
-                      <span className="flex items-center gap-1 text-amber-500">
-                        <AlertTriangle className="w-3 h-3" />
-                        High resistance
+                    {task.resistance && (
+                      <span className={`flex items-center gap-1 ${
+                        task.resistance >= 8 ? 'text-red-400' :
+                        task.resistance >= 6 ? 'text-amber-400' :
+                        task.resistance >= 4 ? 'text-yellow-400' :
+                        'text-emerald-400'
+                      }`}>
+                        <div className="flex gap-0.5">
+                          {[...Array(Math.min(task.resistance, 5))].map((_, i) => (
+                            <div key={i} className={`w-1.5 h-3 rounded-sm ${
+                              task.resistance >= 8 ? 'bg-red-400' :
+                              task.resistance >= 6 ? 'bg-amber-400' :
+                              task.resistance >= 4 ? 'bg-yellow-400' :
+                              'bg-emerald-400'
+                            }`} />
+                          ))}
+                        </div>
+                        {task.resistance >= 7 && <AlertTriangle className="w-3 h-3" />}
                       </span>
                     )}
                     {task.estimatedMinutes && (

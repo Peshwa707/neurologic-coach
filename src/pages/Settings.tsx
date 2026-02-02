@@ -1,8 +1,32 @@
 import { useState, useEffect } from 'react';
-import { Save, Key, Clock, Download, Upload, Trash2, Languages, Sparkles, Bell, BarChart3 } from 'lucide-react';
+import { Save, Key, Clock, Download, Upload, Trash2, Languages, Sparkles, Bell, BarChart3, Volume2 } from 'lucide-react';
 import { Card, CardHeader, Button, Input, VOICE_LANGUAGES } from '../components/common';
 import { useSettings, updateSettings } from '../hooks/useDatabase';
 import { db } from '../db/database';
+
+// Test chime function
+function playTestChime() {
+  const CHIME_FREQUENCIES = [523.25, 659.25, 783.99];
+  try {
+    const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    CHIME_FREQUENCIES.forEach((freq, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+      const startTime = audioContext.currentTime + (index * 0.1);
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.15, startTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 1.5);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 1.5);
+    });
+  } catch (error) {
+    console.warn('Could not play chime:', error);
+  }
+}
 
 export function Settings() {
   const settings = useSettings();
@@ -257,9 +281,18 @@ export function Settings() {
           <div className="flex items-start gap-3">
             <Bell className="w-5 h-5 text-amber-400 mt-0.5" />
             <div className="flex-1">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Time Anchoring Chimes
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  Time Anchoring Chimes
+                </label>
+                <button
+                  onClick={playTestChime}
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded transition-colors"
+                >
+                  <Volume2 className="w-3 h-3" />
+                  Test
+                </button>
+              </div>
               <p className="text-xs text-slate-500 mb-3">
                 Gentle reminders to stay aware of passing time
               </p>

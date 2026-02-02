@@ -14,6 +14,8 @@ import {
   X,
   Check,
   Sparkles,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { useSettings, updateSettings } from '../hooks/useDatabase';
 
@@ -118,48 +120,68 @@ export function Navigation() {
       )}
 
       {/* Desktop Sidebar */}
-      <nav className="hidden md:flex flex-col w-64 bg-slate-900/50 border-r border-slate-800 p-4">
-        <div className="flex items-center gap-3 px-3 py-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+      <nav className={`hidden md:flex flex-col ${settings?.sidebarCollapsed ? 'w-16' : 'w-64'} bg-slate-900/50 border-r border-slate-800 p-4 transition-all duration-300`}>
+        <div className={`flex items-center ${settings?.sidebarCollapsed ? 'justify-center' : 'gap-3 px-3'} py-4 mb-6`}>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
             <Brain className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="font-bold text-white">NeuroLogic</h1>
-            <p className="text-xs text-slate-400">Coach</p>
-          </div>
+          {!settings?.sidebarCollapsed && (
+            <div>
+              <h1 className="font-bold text-white">NeuroLogic</h1>
+              <p className="text-xs text-slate-400">Coach</p>
+            </div>
+          )}
         </div>
+
+        {/* Collapse toggle button */}
+        <button
+          onClick={() => updateSettings({ sidebarCollapsed: !settings?.sidebarCollapsed })}
+          className={`flex items-center ${settings?.sidebarCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2 mb-4 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-all`}
+          title={settings?.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {settings?.sidebarCollapsed ? (
+            <PanelLeft className="w-5 h-5" />
+          ) : (
+            <>
+              <PanelLeftClose className="w-5 h-5" />
+              <span className="font-medium text-sm">Collapse</span>
+            </>
+          )}
+        </button>
 
         <div className="space-y-1 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              title={settings?.sidebarCollapsed ? item.label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                `flex items-center ${settings?.sidebarCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`
               }
             >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {!settings?.sidebarCollapsed && <span className="font-medium">{item.label}</span>}
             </NavLink>
           ))}
         </div>
 
         <NavLink
           to="/settings"
+          title={settings?.sidebarCollapsed ? 'Settings' : undefined}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mt-auto ${
+            `flex items-center ${settings?.sidebarCollapsed ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-lg transition-all mt-auto ${
               isActive
                 ? 'bg-indigo-600 text-white'
                 : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             }`
           }
         >
-          <Settings className="w-5 h-5" />
-          <span className="font-medium">Settings</span>
+          <Settings className="w-5 h-5 flex-shrink-0" />
+          {!settings?.sidebarCollapsed && <span className="font-medium">Settings</span>}
         </NavLink>
       </nav>
 
