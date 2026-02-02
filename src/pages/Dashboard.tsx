@@ -18,6 +18,7 @@ import {
   Play,
 } from 'lucide-react';
 import { Card, CardHeader } from '../components/common';
+import { EnergyMatcher } from '../components/focus';
 import { useTasks, useTodayPomodoros, useRecentMoodLogs, getWeeklyStats, useSettings, updateSettings, getRollingWindowStats, getTopPriorityTask } from '../hooks/useDatabase';
 
 interface WeeklyStats {
@@ -179,6 +180,9 @@ export function Dashboard() {
           <Play className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
         </div>
       </button>
+
+      {/* Energy-Matched Tasks */}
+      {!settings?.zenMode && <EnergyMatcher />}
 
       {/* Zen Mode: Show minimal UI */}
       {settings?.zenMode ? (

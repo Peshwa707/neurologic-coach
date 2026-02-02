@@ -5,3 +5,6 @@ export { SessionSummary } from './SessionSummary';
 export { SessionSummaryWrapper } from './SessionSummaryWrapper';
 export { HyperfocusAlert } from './HyperfocusAlert';
 export { QuickWin } from './QuickWin';
+export { EnergyMatcher } from './EnergyMatcher';
+export { MicroStart, useMicroStart } from './MicroStart';
+export { TransitionRitual } from './TransitionRitual';

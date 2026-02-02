@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { QuickCapture, ReminderChecker, InstallPrompt } from './components/common';
-import { ParkingLot, ContextSwitchWarning, BodyDoubling, SessionSummaryWrapper, HyperfocusAlert, QuickWin } from './components/focus';
+import { ParkingLot, ContextSwitchWarning, BodyDoubling, SessionSummaryWrapper, HyperfocusAlert, QuickWin, TransitionRitual } from './components/focus';
 import { PomodoroProvider } from './contexts/PomodoroContext';
 import { Dashboard } from './pages/Dashboard';
 import { TimePage } from './pages/TimePage';
@@ -55,6 +55,7 @@ function App() {
           <SessionSummaryWrapper />
           <HyperfocusAlert />
           <QuickWin />
+          <TransitionRitual />
         </div>
       </PomodoroProvider>
     </BrowserRouter>
