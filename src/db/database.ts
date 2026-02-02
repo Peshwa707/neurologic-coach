@@ -14,6 +14,7 @@ export interface Settings {
   chimeInterval: number; // minutes (0 = disabled, 15, 30, 60, 120)
   showRollingStats: boolean;
   sidebarCollapsed: boolean;
+  bodyDoublingEnabled: boolean; // Virtual co-working presence
 }
 
 export interface Task {
@@ -264,6 +265,7 @@ export async function initializeDatabase() {
       chimeInterval: 0,
       showRollingStats: true,
       sidebarCollapsed: false,
+      bodyDoublingEnabled: false,
     });
   }
 

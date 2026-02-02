@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Key, Clock, Download, Upload, Trash2, Languages, Sparkles, Bell, BarChart3, Volume2 } from 'lucide-react';
+import { Save, Key, Clock, Download, Upload, Trash2, Languages, Sparkles, Bell, BarChart3, Volume2, Users } from 'lucide-react';
 import { Card, CardHeader, Button, Input, VOICE_LANGUAGES } from '../components/common';
 import { useSettings, updateSettings } from '../hooks/useDatabase';
 import { db } from '../db/database';
@@ -37,6 +37,7 @@ export function Settings() {
   const [zenMode, setZenMode] = useState(false);
   const [chimeInterval, setChimeInterval] = useState(0);
   const [showRollingStats, setShowRollingStats] = useState(true);
+  const [bodyDoublingEnabled, setBodyDoublingEnabled] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export function Settings() {
       setZenMode(settings.zenMode || false);
       setChimeInterval(settings.chimeInterval || 0);
       setShowRollingStats(settings.showRollingStats !== false);
+      setBodyDoublingEnabled(settings.bodyDoublingEnabled || false);
     }
   }, [settings]);
 
@@ -60,6 +62,7 @@ export function Settings() {
       zenMode,
       chimeInterval,
       showRollingStats,
+      bodyDoublingEnabled,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -342,6 +345,35 @@ export function Settings() {
                   <span
                     className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
                       showRollingStats ? 'left-7' : 'left-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Body Doubling */}
+          <div className="flex items-start gap-3">
+            <Users className="w-5 h-5 text-purple-400 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300">
+                    Body Doubling Mode
+                  </label>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Virtual co-working presence during focus sessions
+                  </p>
+                </div>
+                <button
+                  onClick={() => setBodyDoublingEnabled(!bodyDoublingEnabled)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    bodyDoublingEnabled ? 'bg-purple-600' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      bodyDoublingEnabled ? 'left-7' : 'left-1'
                     }`}
                   />
                 </button>

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
 import { QuickCapture, ReminderChecker, InstallPrompt } from './components/common';
+import { ParkingLot, ContextSwitchWarning, BodyDoubling } from './components/focus';
+import { PomodoroProvider } from './contexts/PomodoroContext';
 import { Dashboard } from './pages/Dashboard';
 import { TimePage } from './pages/TimePage';
 import { TasksPage } from './pages/TasksPage';
@@ -27,26 +29,31 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen bg-[#0f0f1a]">
-        <Navigation />
-        <main className="flex-1 overflow-y-auto md:ml-0">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/time" element={<TimePage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/awareness" element={<AwarenessPage />} />
-            <Route path="/inhibition" element={<InhibitionPage />} />
-            <Route path="/emotional" element={<EmotionalPage />} />
-            <Route path="/voice" element={<VoicePage />} />
-            <Route path="/coach" element={<CoachPage />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/organize" element={<RoomOrganizerPage />} />
-          </Routes>
-        </main>
-        <QuickCapture />
-        <ReminderChecker />
-        <InstallPrompt />
-      </div>
+      <PomodoroProvider>
+        <div className="flex min-h-screen bg-[#0f0f1a]">
+          <Navigation />
+          <main className="flex-1 overflow-y-auto md:ml-0">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/time" element={<TimePage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/awareness" element={<AwarenessPage />} />
+              <Route path="/inhibition" element={<InhibitionPage />} />
+              <Route path="/emotional" element={<EmotionalPage />} />
+              <Route path="/voice" element={<VoicePage />} />
+              <Route path="/coach" element={<CoachPage />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/organize" element={<RoomOrganizerPage />} />
+            </Routes>
+          </main>
+          <QuickCapture />
+          <ReminderChecker />
+          <InstallPrompt />
+          <ContextSwitchWarning />
+          <ParkingLot />
+          <BodyDoubling />
+        </div>
+      </PomodoroProvider>
     </BrowserRouter>
   );
 }
